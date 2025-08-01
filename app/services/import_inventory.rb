@@ -1,7 +1,7 @@
-require 'csv'
+require "csv"
 
 class ImportInventory
-  EXPECTED_HEADERS = ['title', 'description', 'price', 'vendor_id', 'sku']
+  EXPECTED_HEADERS = [ "title", "description", "price", "vendor_id", "sku" ]
 
   attr_reader :errors, :stats
 
@@ -17,10 +17,13 @@ class ImportInventory
     }
   end
 
+  # ideal scenario is to have a background job that calls this method
+  # and then we use s3 to store the file and then we delete the file after the import is complete
   def process_csv
     return false unless validate_csv(@file_path)
     call
-    @errors.empty?
+    # Return true if we processed any rows successfully, even if there were errors
+    @stats[:total_rows] > 0
   end
 
   def validate_csv(file_path)
@@ -29,12 +32,12 @@ class ImportInventory
       return false
     end
 
-    unless File.extname(file_path) == '.csv'
+    unless File.extname(file_path) == ".csv"
       @errors << "File must be a CSV file"
       return false
     end
 
-    actual_headers = File.open(file_path).first.strip.split(',')
+    actual_headers = File.open(file_path).first.strip.split(",")
     unless actual_headers == EXPECTED_HEADERS
       @errors << "Invalid headers. Expected: #{EXPECTED_HEADERS.join(', ')}, Got: #{actual_headers.join(', ')}"
       return false
@@ -73,10 +76,10 @@ class ImportInventory
 
     # Prepare product data
     product_data = build_product_data(row)
-    
+
     # Check for existing product
-    existing_product = Product.find_by(sku: row['sku'])
-    
+    existing_product = Product.find_by(sku: row["sku"])
+
     if existing_product
       existing_product.assign_attributes(product_data)
       @products_to_update ||= []
@@ -85,7 +88,7 @@ class ImportInventory
       @products_to_create ||= []
       @products_to_create << Product.new(product_data)
     end
-    
+
     # Process in chunks
     if (@products_to_create&.size || 0) + (@products_to_update&.size || 0) >= 1000
       process_bulk_operations
@@ -96,17 +99,19 @@ class ImportInventory
     errors = []
 
     # Check required fields
-    errors << "Line #{line_number}: Missing title" if row['title'].blank?
-    errors << "Line #{line_number}: Missing description" if row['description'].blank?
-    errors << "Line #{line_number}: Missing SKU" if row['sku'].blank?
-    errors << "Line #{line_number}: Missing vendor_id" if row['vendor_id'].blank?
-    
+    errors << "Line #{line_number}: Missing title" if row["title"].blank?
+    errors << "Line #{line_number}: Missing description" if row["description"].blank?
+    errors << "Line #{line_number}: Missing SKU" if row["sku"].blank?
+    errors << "Line #{line_number}: Missing vendor_id" if row["vendor_id"].blank?
+
     # Validate price
-    if row['price'].present?
+    if row["price"].present?
       begin
-        price = BigDecimal(row['price'])
+        price = BigDecimal(row["price"])
         if price < 0
           errors << "Line #{line_number}: Price cannot be negative"
+        elsif price == 0
+          errors << "Line #{line_number}: Price cannot be zero"
         end
       rescue ArgumentError
         errors << "Line #{line_number}: Invalid price format: #{row['price']}"
@@ -116,9 +121,9 @@ class ImportInventory
     end
 
     # Validate vendor_id
-    if row['vendor_id'].present?
+    if row["vendor_id"].present?
       begin
-        vendor_id = Integer(row['vendor_id'])
+        vendor_id = Integer(row["vendor_id"])
         unless Vendor.exists?(vendor_id)
           errors << "Line #{line_number}: Vendor with ID #{vendor_id} does not exist"
         end
@@ -128,8 +133,8 @@ class ImportInventory
     end
 
     # Validate SKU format
-    if row['sku'].present?
-      unless row['sku'].match?(/\A[A-Z0-9]+(?:-[A-Z0-9]+)*\z/)
+    if row["sku"].present?
+      unless row["sku"].match?(/\A[A-Z0-9]+(?:-[A-Z0-9]+)*\z/)
         errors << "Line #{line_number}: Invalid SKU format: #{row['sku']}"
       end
     end
@@ -139,11 +144,11 @@ class ImportInventory
 
   def build_product_data(row)
     {
-      title: row['title'].strip,
-      description: row['description'].strip,
-      price: BigDecimal(row['price']),
-      vendor_id: Integer(row['vendor_id']),
-      sku: row['sku'].strip
+      title: row["title"].strip,
+      description: row["description"].strip,
+      price: BigDecimal(row["price"]),
+      vendor_id: Integer(row["vendor_id"]),
+      sku: row["sku"].strip
     }
   end
 
@@ -157,11 +162,11 @@ class ImportInventory
         @stats[:created] += @products_to_create.size
         puts "Created #{@products_to_create.size} products"
       end
-      
+
       # Bulk update existing products
       if @products_to_update&.any?
         @products_to_update.each_slice(100) do |update_chunk|
-          Product.import(update_chunk, on_duplicate_key_update: [:title, :description, :price, :vendor_id], validate: false)
+          Product.import(update_chunk, on_duplicate_key_update: [ :title, :description, :price, :vendor_id ], validate: false)
         end
         @stats[:updated] += @products_to_update.size
         puts "Updated #{@products_to_update.size} products"

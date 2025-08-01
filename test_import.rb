@@ -37,4 +37,4 @@ puts "Errors: #{importer3.errors}"
 File.delete('temp_invalid.csv') if File.exist?('temp_invalid.csv')
 
 puts "\n" + "=" * 50
-puts "Error handling test completed!" 
+puts "Error handling test completed!"

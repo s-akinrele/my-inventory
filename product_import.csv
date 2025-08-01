@@ -8,8 +8,8 @@ title,description,price,vendor_id,sku
 "Invalid Product 2","Product with negative price",-50.00,1,NEGATIVE-PRICE-1
 "Invalid Product 3","Product with zero price",0.00,2,ZERO-PRICE-1
 "Invalid Product 4","Product with missing vendor_id",199.99,,MISSING-VENDOR-1
-"Invalid Product 5","Product with invalid price format",abc,3,INVALID-PRICE-FORMAT
-"Invalid Product 6","Product with missing title",299.99,4,MISSING-TITLE-1
+"Invalid Product 5","Product with invalid price format","abc",3,INVALID-PRICE-FORMAT
+"Invalid Product 6","Product with missing title","",299.99,4,MISSING-TITLE-1
 "Invalid Product 7","Product with missing SKU","Premium wireless keyboard",129.99,5,
 "Invalid Product 8","Product with duplicate SKU","Another gaming laptop",1499.99,1,GAME-LAPTOP-RTX
 "Invalid Product 9","Product with vendor_id as string","Test product",79.99,"abc",STRING-VENDOR-ID

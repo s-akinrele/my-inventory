@@ -7,4 +7,14 @@ Rails.application.routes.draw do
 
   # Defines the root path route ("/")
   # root "posts#index"
+
+  # Import routes
+  resources :imports, only: [:index, :create] do
+    collection do
+      post :batch_create
+      get :status
+      get :results
+      delete :cancel
+    end
+  end
 end
